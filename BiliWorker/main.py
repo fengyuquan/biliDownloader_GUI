@@ -1,4 +1,5 @@
 import os, sys, re, json, subprocess
+import json
 from time import sleep
 from PySide2.QtCore import QThread, Signal
 
@@ -25,23 +26,23 @@ class biliWorker(QThread):
     # 初始化
     def __init__(self, args, model=0):
         super(biliWorker, self).__init__()
-        self.run_model = model
-        self.haveINFO = False
-        self.pauseprocess = False
-        self.subpON = False
-        self.killprocess = False
-        self.index_url = args["Address"]
-        self.d_list = args["DownList"]
-        self.VQuality = args["VideoQuality"]
-        self.AQuality = args["AudioQuality"]
-        self.output = args["Output"]
-        self.synthesis = args["sym"]
-        self.systemd = args["sys"]
-        self.re_playinfo = 'window.__playinfo__=([\s\S]*?)</script>'
-        self.re_INITIAL_STATE = 'window.__INITIAL_STATE__=([\s\S]*?);\(function'
-        self.vname_expression = '<title(.*?)</title>'
-        self.chunk_size = args["chunk_size"]
-        self.set_err = args["dl_err"]
+        self.run_model = model  # 运行模式
+        self.haveINFO = False  # 是否有信息
+        self.pauseprocess = False  # 是否暂停进程
+        self.subpON = False  # 子进程是否开启
+        self.killprocess = False  # 是否终止进程
+        self.index_url = args["Address"]  # 索引URL
+        self.d_list = args["DownList"]  # 下载列表
+        self.VQuality = args["VideoQuality"]  # 视频质量
+        self.AQuality = args["AudioQuality"]  # 音频质量
+        self.output = args["Output"]  # 输出目录
+        self.synthesis = args["sym"]  # 是否合成
+        self.systemd = args["sys"]  # 系统守护进程
+        self.re_playinfo = 'window.__playinfo__=([\s\S]*?)</script>'  # 正则表达式，用于匹配播放信息
+        self.re_INITIAL_STATE = 'window.__INITIAL_STATE__=([\s\S]*?);\(function'  # 正则表达式，用于匹配初始状态
+        self.vname_expression = '<title(.*?)</title>'  # 正则表达式，用于匹配视频名称
+        self.chunk_size = args["chunk_size"]  # 块大小
+        self.set_err = args["dl_err"]  # 设置错误
         self.index_headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
         }
@@ -55,7 +56,7 @@ class biliWorker(QThread):
             "sec-fetch-mode": "cors",
             "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/72.0.3626.121 Safari/537.36"
         }
-        if args["useCookie"]:
+        if args["useCookie"]:  # 如果使用Cookie
             self.index_headers["cookie"] = args["cookie"]
             self.second_headers["cookie"] = args["cookie"]
         else:
@@ -63,47 +64,47 @@ class biliWorker(QThread):
             self.second_headers["cookie"] = ""
         # 使用代理
         self.Proxy = None
-        if args["useProxy"]:
+        if args["useProxy"]:  # 如果使用代理
             self.Proxy = args["Proxy"]
         # 代理验证
         self.ProxyAuth = None
-        if args["ProxyAuth"]["inuse"]:
+        if args["ProxyAuth"]["inuse"]:  # 如果代理需要验证
             from requests.auth import HTTPProxyAuth
             self.ProxyAuth = HTTPProxyAuth(args['ProxyAuth']['usr'], args['ProxyAuth']['pwd'])
 
 
     # 运行模式设置函数
     def model_set(self, innum):
-        self.run_model = innum
+        self.run_model = innum  # 设置运行模式
 
     # 结束进程函数
     def close_process(self):
-        self.killprocess = True
-        self.pauseprocess = False
-        self.business_info.emit("正在结束下载进程......")
+        self.killprocess = True  # 设置终止进程标志
+        self.pauseprocess = False  # 取消暂停进程标志
+        self.business_info.emit("正在结束下载进程......")  # 发射信息
 
     # 暂停下载进程函数
     def pause(self):
-        if self.subpON:
-            self.business_info.emit("视频正在合成，只能终止不能暂停")
+        if self.subpON:  # 如果子进程开启
+            self.business_info.emit("视频正在合成，只能终止不能暂停")  # 发射信息
             return False
         else:
-            self.business_info.emit("下载已暂停")
-            self.pauseprocess = True
+            self.business_info.emit("下载已暂停")  # 发射信息
+            self.pauseprocess = True  # 设置暂停进程标志
 
     # 恢复下载进程函数
     def resume(self):
-        self.business_info.emit("下载已恢复")
-        self.pauseprocess = False
+        self.business_info.emit("下载已恢复")  # 发射信息
+        self.pauseprocess = False  # 取消暂停进程标志
 
-    # File name conflict replace
+    # 文件名冲突替换
     def name_replace(self, name):
-        vn = name.replace(' ', '_').replace('\\', '').replace('/', '')
+        vn = name.replace(' ', '_').replace('\\', '').replace('/', '')  # 替换文件名中的特殊字符
         vn = vn.replace('*', '').replace(':', '').replace('?', '').replace('<', '')
         vn = vn.replace('>', '').replace('\"', '').replace('|', '').replace('\x08', '')
-        return vn
+        return vn  # 返回处理后的文件名
 
-    # Change /SS movie address
+    # 更改/SS电影地址
     def ssADDRCheck(self, inurl):
         # checking1:番剧首页视频地址检查； checking2:番剧单个视频地址检查
         checking1 = re.findall('/play/ss', inurl.split("?")[0], re.S)
@@ -121,7 +122,7 @@ class biliWorker(QThread):
                 dec = res.content.decode('utf-8')
                 INITIAL_STATE = re.findall(self.re_INITIAL_STATE, dec, re.S)
                 temp = json.loads(INITIAL_STATE[0])
-                self.index_url = temp["mediaInfo"]["episodes"][0]["link"]
+                self.index_url = temp["mediaInfo"]["episodes"][0]["link"]  # 更新索引URL
                 return 1, temp["mediaInfo"]["episodes"][0]["link"]
             elif checking2 != []:
                 return 1, inurl
@@ -131,9 +132,9 @@ class biliWorker(QThread):
             print("[EXCEPTION]BiliWorker.main.biliWorker.ssADDRCheck:", e)
             return 0, inurl
 
-    # Searching Key Word
+    # 搜索关键词
     def search_preinfo(self, index_url):
-        # Get Html Information
+        # 获取HTML信息
         index_url = self.ssADDRCheck(index_url)
         try:
             res = request.get(
@@ -148,16 +149,16 @@ class biliWorker(QThread):
         except Exception as e:
             print("[EXCEPTION]BiliWorker.main.biliWorker.search_preinfo: Get Initialized Info Error -> ", e)
             return 0, "", "", {}
-        # Use RE to find Download JSON Data
+        # 使用正则表达式查找下载JSON数据
         playinfo = re.findall(self.re_playinfo, dec, re.S)
         INITIAL_STATE = re.findall(self.re_INITIAL_STATE, dec, re.S)
         if playinfo == [] or INITIAL_STATE == []:
             print("[ERROR]BiliWorker.main.biliWorker.search_preinfo: Get Session Initialized Info Failed!")
             return 0, "", "", {}
-        # Bangumi Video
+        # 番剧视频
         re_init = json.loads(INITIAL_STATE[0])
         re_GET = json.loads(playinfo[0])
-        # Normal Video
+        # 普通视频
         # if index_url[0] == 0:
         #     now_cid = re_init["videoData"]["pages"][re_init["p"]-1]["cid"]
         #     try:
@@ -171,19 +172,19 @@ class biliWorker(QThread):
         #     except Exception as e:
         #         print("获取Playlist失败:",e)
         #         return 0, "", "", {}
-        # If Crawler can GET Data
+        # 如果爬虫可以获取数据
         try:
-            # Get video name
+            # 获取视频名称
             vn1 = re.findall(self.vname_expression, dec, re.S)[0].split('>')[1]
             vn2 = ""
             if "videoData" in re_init:
                 vn2 = re_init["videoData"]["pages"][re_init["p"] - 1]["part"]
             elif "mediaInfo" in re_init:
                 vn2 = re_init["epInfo"]["titleFormat"] + ":" + re_init["epInfo"]["longTitle"]
-            video_name = self.name_replace(vn1) + "_[" + self.name_replace(vn2) + "]"
-            # List Video Quality Table
+            video_name = self.name_replace(vn1) + "_[" + self.name_replace(vn2) + "]"  # 组合视频名称
+            # 列出视频质量表
             length, down_dic = self.tmp_dffss(re_GET)
-            # Return Data
+            # 返回数据
             return 1, video_name, length, down_dic
         except Exception as e:
             print("[EXCEPTION]BiliWorker.main.biliWorker.search_preinfo:", e)
@@ -193,10 +194,10 @@ class biliWorker(QThread):
         temp_v = {}
         for i in range(len(re_GET["data"]["accept_quality"])):
             temp_v[str(re_GET["data"]["accept_quality"][i])] = str(re_GET["data"]["accept_description"][i])
-        # List Video Download Quality
+        # 列出视频下载质量
         down_dic = {"video": {}, "audio": {}}
         i = 0
-        # Get Video identity information and Initial SegmentBase.
+        # 获取视频身份信息和初始SegmentBase。
         for dic in re_GET["data"]["dash"]["video"]:
             if str(dic["id"]) in temp_v:
                 qc = temp_v[str(dic["id"])]
@@ -1018,6 +1019,10 @@ class biliWorker(QThread):
     ###################################################################
     # 运行线程
     def run(self):
+        print("Current Attributes of self:")
+        for attr in dir(self):
+            if not attr.startswith("__") and not callable(getattr(self, attr)):
+                print(f"{attr}: {getattr(self, attr)}")
         # self.reloader()
         if self.run_model == 0:
             # 探查资源类型
@@ -1143,3 +1148,4 @@ class biliWorker(QThread):
 #             self.status = 3
 #             # raise Exception('线路出错，切换线路。')
 #
+
