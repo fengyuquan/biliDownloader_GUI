@@ -200,7 +200,8 @@ class biliWorker(QThread):
         # 获取视频身份信息和初始SegmentBase。
         for dic in re_GET["data"]["dash"]["video"]:
             if str(dic["id"]) in temp_v:
-                qc = temp_v[str(dic["id"])]
+                # qc = temp_v[str(dic["id"])]
+                qc = temp_v[str(dic["id"])] + " " + dic["codecs"]
                 down_dic["video"][i] = [qc, [dic["baseUrl"]], 'bytes=' + dic["SegmentBase"]["Initialization"]]
                 if dic.get('backupUrl') is list:
                     for a in range(len(dic["backupUrl"])):
