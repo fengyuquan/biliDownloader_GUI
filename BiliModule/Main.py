@@ -90,6 +90,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.progressBarTimer.start(100)
         self.progressBarTimer.timeout.connect(self.progress_Show)
 
+        # 剪贴板监控初始化
+        self.clipboard = QApplication.clipboard()
+        self.previous_clipboard_content = self.clipboard.text()
+        self.clipboard_timer = QTimer(self)
+        self.clipboard_timer.timeout.connect(self.check_clipboard)
+        self.clipboard_timer.start(1000)  # 每秒检查一次剪贴板
+
+    def check_clipboard(self):
+        current_clipboard_content = self.clipboard.text()
+        if current_clipboard_content.startswith("https://www.bilibili.com/video/") and current_clipboard_content != self.previous_clipboard_content:
+            self.source_search.setText(current_clipboard_content)
+            self.previous_clipboard_content = current_clipboard_content
+            self.activateWindow()  # 尝试激活窗口
+            self.raise_()  # 将窗口提升到最前
+            self.showNormal()  # 如果窗口最小化了，则恢复窗口大小
+            self.Get_preInfo()
+
     # ###################### RW Part ##########################
     # 鼠标点击事件产生
     def mousePressEvent(self, event):

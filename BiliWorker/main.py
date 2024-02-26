@@ -1020,9 +1020,9 @@ class biliWorker(QThread):
     # 运行线程
     def run(self):
         print("Current Attributes of self:")
-        for attr in dir(self):
-            if not attr.startswith("__") and not callable(getattr(self, attr)):
-                print(f"{attr}: {getattr(self, attr)}")
+        # for attr in dir(self):
+        #     if not attr.startswith("__") and not callable(getattr(self, attr)):
+        #         print(f"{attr}: {getattr(self, attr)}")
         # self.reloader()
         if self.run_model == 0:
             # 探查资源类型
