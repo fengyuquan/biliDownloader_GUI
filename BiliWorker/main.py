@@ -137,13 +137,15 @@ class biliWorker(QThread):
         # 获取HTML信息
         index_url = self.ssADDRCheck(index_url)
         url = index_url[1]
+        if url.endswith('/'):
+            url = url[:-1]
         if "?" in url and "/?" not in url:
             url = url.replace("?", "/?")
         if "spm_id_from" not in url:
             if "/?" in url:
-                url += "&spm_id_from=333.999.0.0"
+                url += "&spm_id_from=333.999.0.0&oid=1400985499"
             else:
-                url += "/?spm_id_from=333.999.0.0"
+                url += "/?spm_id_from=333.999.0.0&oid=1400985499"
         try:
             res = request.get(
                 url,
