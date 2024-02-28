@@ -43,6 +43,58 @@ def check_and_process_video_url(self, inurl):
         return 0, inurl
 
 
+def parse_audio(self, down_dic, audio_list, audio_type):
+    """
+    定义音频解析函数
+
+    Args:
+        down_dic (_type_): _description_
+        audio_list (_type_): _description_
+        audio_type (_type_): _description_
+    """
+    try:
+        if audio_list:
+            for i, dic in enumerate(audio_list):
+                au_stream = audio_type + " " + \
+                    dic["codecs"] + "  音频带宽：" + str(dic["bandwidth"])
+                down_dic["audio"][i] = [au_stream, [dic["base_url"]],
+                                        'bytes=' + dic["segment_base"]["initialization"]]
+                if isinstance(dic.get('backupUrl'), list):
+                    for backup_url in dic["backupUrl"]:
+                        down_dic["audio"][i][1].append(backup_url)
+    except Exception as e:
+        print("解析音频的错误是：", e)
+        pass
+
+
+def parse_video(self, down_dic, re_GET):
+    """
+    定义视频解析函数
+
+    Args:
+        down_dic (_type_): _description_
+        re_GET (_type_): _description_
+    """
+    quality_description_map = {str(q): str(desc) for q, desc in zip(
+        re_GET["data"]["accept_quality"], re_GET["data"]["accept_description"])}
+
+    try:
+        for i, dic in enumerate(re_GET["data"]["dash"]["video"]):
+            video_id = str(dic["id"])
+            if video_id in quality_description_map:
+                qd = quality_description_map[video_id] + " " + dic["codecs"]
+                down_dic["video"][i] = [qd, [dic["baseUrl"]],
+                                        'bytes=' + dic["SegmentBase"]["Initialization"]]
+                if isinstance(dic.get('backupUrl'), list):
+                    for backup_url in dic["backupUrl"]:
+                        down_dic["video"][i][1].append(backup_url)
+            else:
+                continue
+    except Exception as e:
+        print("解析视频的错误是：", e)
+        pass
+
+
 def parse_video_audio_info(self, re_GET):
     """
     解析json格式的playinfo信息, 获取到音视频质量信息及其下载地址
@@ -53,69 +105,24 @@ def parse_video_audio_info(self, re_GET):
     Returns:
         (,): length, down_dic
     """
-    quality_description_map = {str(q): str(desc) for q, desc in zip(
-        re_GET["data"]["accept_quality"], re_GET["data"]["accept_description"])}
-
-    # 列出视频下载质量
     down_dic = {"video": {}, "audio": {}}
 
-    # 获取视频信息和初始SegmentBase。
-    for i, dic in enumerate(re_GET["data"]["dash"]["video"]):
-        video_id = str(dic["id"])
-        if video_id in quality_description_map:
-            qd = quality_description_map[video_id] + " " + dic["codecs"]
-            down_dic["video"][i] = [qd, [dic["baseUrl"]],
-                                    'bytes=' + dic["SegmentBase"]["Initialization"]]
-            if isinstance(dic.get('backupUrl'), list):
-                for backup_url in dic["backupUrl"]:
-                    down_dic["video"][i][1].append(backup_url)
-        else:
-            continue
+    # 获取视频信息
+    self.parse_video(down_dic, re_GET)
 
-    # 获取杜比音轨信息和初始SegmentBase。
-    try:
-        for i, dic in enumerate(re_GET["data"]["dash"]["dolby"]['audio']):
-            au_stream = "杜比音轨 " + dic["codecs"] + "  音频带宽：" + str(dic["bandwidth"])
-            t = [au_stream, [dic["base_url"]], 'bytes=' +
-                dic["segment_base"]["initialization"]]
-            down_dic["audio"][i] = t
-            if isinstance(dic.get('backupUrl'), list):
-                for backup_url in dic["backupUrl"]:
-                    down_dic["audio"][i][1].append(backup_url)
-    except:
-        pass
-
-    try:
-        # 获取Hi-Res音轨信息和初始SegmentBase。
-        for i, dic in enumerate(re_GET["data"]["dash"]['flac']['audio']):
-            au_stream = "Hi-Res " + dic["codecs"] + \
-                "  音频带宽：" + str(dic["bandwidth"])
-            down_dic["audio"][i] = [au_stream, [dic["base_url"]],
-                                    'bytes=' + dic["segment_base"]["initialization"]]
-            if isinstance(dic.get('backupUrl'), list):
-                for backup_url in dic["backupUrl"]:
-                    down_dic["audio"][i][1].append(backup_url)
-    except:
-        pass
-
-    # 获取普通音轨信息和初始SegmentBase。
-    if isinstance(re_GET["data"]["dash"]["audio"], list):
-        for i, dic in enumerate(re_GET["data"]["dash"]["audio"]):
-            au_stream = "普通音轨 " + dic["codecs"] + \
-                "  音频带宽：" + str(dic["bandwidth"])
-            down_dic["audio"][i] = [au_stream, [dic["baseUrl"]],
-                                    'bytes=' + dic["SegmentBase"]["Initialization"]]
-            if isinstance(dic.get('backupUrl'), list):
-                for backup_url in dic["backupUrl"]:
-                    down_dic["audio"][i][1].append(backup_url)
-    else:
-        # 若不存在音轨，则虚拟一个空音轨下载地址
+    # 处理不同类型的音轨
+    self.parse_audio(down_dic, re_GET["data"]["dash"]["dolby"]['audio'], "杜比音轨")
+    self.parse_audio(down_dic, re_GET["data"]["dash"]['flac'], "Hi-Res")
+    self.parse_audio(down_dic, re_GET["data"]["dash"]["audio"], "普通音轨")
+    # 若不存在音轨，则虚拟一个空音轨下载地址
+    if not down_dic["audio"]:
         print("[INFO]BiliWorker.base.BiliWorker.parse_video_audio_info: This media disables the audio track.")
         au_stream = "无音轨"
         down_dic["audio"][0] = [au_stream, [], '']
 
-    # Get Video Length
+    # 获取视频时长
     length = re_GET["data"]["dash"]["duration"]
+    
     return length, down_dic
 
 
@@ -237,6 +244,8 @@ def search_videoList(self, index_url):
 
 
 BiliWorker.check_and_process_video_url = check_and_process_video_url
+BiliWorker.parse_audio = parse_audio
+BiliWorker.parse_video = parse_video
 BiliWorker.parse_video_audio_info = parse_video_audio_info
 BiliWorker.search_preinfo = search_preinfo
 BiliWorker.search_videoList = search_videoList
