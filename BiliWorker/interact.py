@@ -160,7 +160,7 @@ def down_list_make(self, cid_num):
     if playinfo != {}:
         re_GET = playinfo
         # List Video Quality Table
-        length, down_dic = self.tmp_dffss(re_GET)
+        length, down_dic = self.parse_video_audio_info(re_GET)
         # Return Data
         return True, length, down_dic
     else:

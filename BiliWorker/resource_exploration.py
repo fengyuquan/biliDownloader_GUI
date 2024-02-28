@@ -5,7 +5,7 @@ import requests as request
 from BiliWorker.base import BiliWorker
 
 
-def ssADDRCheck(self, inurl):
+def check_and_process_video_url(self, inurl):
     """
     更改/SS电影地址, 检查并处理特定的视频地址格式。
 
@@ -39,11 +39,11 @@ def ssADDRCheck(self, inurl):
         else:
             return 0, inurl
     except Exception as e:
-        print("[EXCEPTION]BiliWorker.base.BiliWorker.ssADDRCheck:", e)
+        print("[EXCEPTION]BiliWorker.base.BiliWorker.check_and_process_video_url:", e)
         return 0, inurl
 
 
-def tmp_dffss(self, re_GET):
+def parse_video_audio_info(self, re_GET):
     """
     解析json格式的playinfo信息, 获取到音视频质量信息及其下载地址
 
@@ -122,7 +122,7 @@ def tmp_dffss(self, re_GET):
     elif i == 0:
         # 若不存在音轨，则虚拟一个空音轨下载地址
         print(
-            "[INFO]BiliWorker.base.BiliWorker.tmp_dffss: This media disable Sounds Track.")
+            "[INFO]BiliWorker.base.BiliWorker.parse_video_audio_info: This media disable Sounds Track.")
         au_stream = "无音轨"
         down_dic["audio"][0] = [au_stream, [], '']
     else:
@@ -144,7 +144,7 @@ def search_preinfo(self, index_url):
         tuple : 返回视频的信息
     """
     # 获取HTML信息
-    index_url = self.ssADDRCheck(index_url)
+    index_url = self.check_and_process_video_url(index_url)
     url = index_url[1]
     if url.endswith('/'):
         url = url[:-1]
@@ -193,7 +193,7 @@ def search_preinfo(self, index_url):
             vn1) + "_[" + self.name_replace(vn2) + "]"  # 组合视频名称
 
         # down_dic包含音视频质量表及其下载地址
-        length, down_dic = self.tmp_dffss(re_GET)
+        length, down_dic = self.parse_video_audio_info(re_GET)
 
         # 返回数据
         return 1, video_name, length, down_dic
@@ -250,7 +250,7 @@ def search_videoList(self, index_url):
         return 0, {}
 
 
-BiliWorker.ssADDRCheck = ssADDRCheck
-BiliWorker.tmp_dffss = tmp_dffss
+BiliWorker.check_and_process_video_url = check_and_process_video_url
+BiliWorker.parse_video_audio_info = parse_video_audio_info
 BiliWorker.search_preinfo = search_preinfo
 BiliWorker.search_videoList = search_videoList
