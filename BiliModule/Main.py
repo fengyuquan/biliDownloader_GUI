@@ -3,7 +3,7 @@ from BiliModule.About import AboutWindow
 from BiliModule.Setting import SettingWindow
 from BiliModule.Interact import biliInteractMainWindow
 
-from BiliWorker.main import biliWorker
+from BiliWorker.base import BiliWorker
 from BiliWorker.extra import *
 from PySide2.QtWidgets import QApplication, QMainWindow, QGraphicsDropShadowEffect, QCheckBox, QListWidgetItem, \
     QFileDialog
@@ -74,9 +74,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 if tempr.get('chunk_size'):
                     indict['chunk_size'] = tempr.get('chunk_size')
                 if tempr.get('ProxyAuth'):
-                    indict['ProxyAuth']['inuse'] = tempr['ProxyAuth'].get('inuse', False)
-                    indict['ProxyAuth']['usr'] = tempr['ProxyAuth'].get('usr', '')
-                    indict['ProxyAuth']['pwd'] = tempr['ProxyAuth'].get('pwd', '')
+                    indict['ProxyAuth']['inuse'] = tempr['ProxyAuth'].get(
+                        'inuse', False)
+                    indict['ProxyAuth']['usr'] = tempr['ProxyAuth'].get(
+                        'usr', '')
+                    indict['ProxyAuth']['pwd'] = tempr['ProxyAuth'].get(
+                        'pwd', '')
         except:
             indict["Output"] = DF_Path
             indict["sys"] = sys.platform
@@ -155,7 +158,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.combo_aq.clear()
         self.media_list.clear()
         # 启动线程
-        self.tes = biliWorker(indict, 0)
+        self.tes = BiliWorker(indict, 0)
         self.tes.business_info.connect(self.businINFO_Catch)
         self.tes.vq_list.connect(self.vqulityList)
         self.tes.aq_list.connect(self.aqulityList)
@@ -169,7 +172,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # 选择目录事件函数
     def selectDir(self):
-        directory = QFileDialog.getExistingDirectory(None, "选择文件夹", indict["Output"])
+        directory = QFileDialog.getExistingDirectory(
+            None, "选择文件夹", indict["Output"])
         if directory != "":
             self.lineEdit_dir.setText(directory)
             indict["Output"] = directory
@@ -198,7 +202,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.allSelect = False
             self.btn_selectALL.setText("全选")
             for i in range(count):
-                self.media_list.itemWidget(self.media_list.item(i)).setChecked(False)
+                self.media_list.itemWidget(
+                    self.media_list.item(i)).setChecked(False)
         else:
             count = self.media_list.count()
             if count == 0:
@@ -206,7 +211,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.allSelect = True
             self.btn_selectALL.setText("全不选")
             for i in range(count):
-                self.media_list.itemWidget(self.media_list.item(i)).setChecked(True)
+                self.media_list.itemWidget(
+                    self.media_list.item(i)).setChecked(True)
 
     # 下载视频按钮事件处理函数
     def download(self):
@@ -226,7 +232,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.iv_tes._Signal.connect(self.interact_Page)
                 self.iv_tes.show()
                 # 老代码
-                # self.tes = biliWorker(indict, 2)
+                # self.tes = BiliWorker(indict, 2)
                 # self.tes.business_info.connect(self.businINFO_Catch)
                 # self.tes.progr_bar.connect(self.progress_Bar)
                 # self.tes.is_finished.connect(self.thread_finished)
@@ -247,9 +253,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.btn_search.setEnabled(False)
                 self.speedCalc(0)
                 if self.isAudio:
-                    self.tes = biliWorker(indict, 4)
+                    self.tes = BiliWorker(indict, 4)
                 else:
-                    self.tes = biliWorker(indict, 1)
+                    self.tes = BiliWorker(indict, 1)
                 self.tes.business_info.connect(self.businINFO_Catch)
                 self.tes.progr_bar.connect(self.progress_Bar)
                 self.tes.is_finished.connect(self.thread_finished)
@@ -282,7 +288,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     # 帮助按钮函数
     def forHELP(self):
-        webbrowser.open("https://jimmyliang-lzm.github.io/2021/10/07/bilid_GUI_help/")
+        webbrowser.open(
+            "https://jimmyliang-lzm.github.io/2021/10/07/bilid_GUI_help/")
 
     # 打开关于页面函数
     def openAbout(self):
